@@ -99,17 +99,16 @@ class Engine:
 # Create a Mesh class to manage geometry and rendering
 class Mesh:
     def __init__(self) -> None:
-        # Define vertex data and indices for a simple quad
+        # Define vertex data and indices for a triangle
         self.vertices = np.array([
-            0.5, 0.5, 0.0,  # top right
-            0.5, -0.5, 0.0,  # bottom right
-            -0.5, -0.5, 0.0,  # bottom left
-            -0.5, 0.5, 0.0  # top left
+            # positions        # colors
+             0.5, -0.5, 0.0,  1.0, 0.0, 0.0,
+            -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,
+             0.0,  0.5, 0.0,  0.0, 0.0, 1.0
         ], np.float32)
 
         self.indices = np.array([
-            0, 1, 3,  # First Triangle
-            1, 2, 3   # Second Triangle
+            0, 1, 2,  # First Triangle
         ], np.int32)
 
         # Generate OpenGL objects for the mesh
@@ -126,8 +125,11 @@ class Mesh:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 4, ctypes.c_void_p(0))
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * 4, ctypes.c_void_p(4*0))
         glEnableVertexAttribArray(0)
+
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 2 * 4, ctypes.c_void_p(4*3))
+        glEnableVertexAttribArray(1)
 
         # Unbind VBO and VAO
         glBindBuffer(GL_ARRAY_BUFFER, 0)
