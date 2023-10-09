@@ -33,8 +33,8 @@ class Engine:
         self.pgClock = pg.time.Clock()
 
         # Compile shaders and set up OpenGL settings
-        self.shaderProgram = self.compileShaders("shader.vert", "shader.frag")
-        glUseProgram(self.shaderProgram)
+        self.shaderProgram = shaderProgram("shader.vert","shader.frag")
+        self.shaderProgram.use()
         glViewport(0, 0, *self.windSize)
         glClearColor(*self.clearColor)
 
@@ -44,22 +44,9 @@ class Engine:
         # Start the main loop
         self.run()
 
-    # Function to compile vertex and fragment shaders into a shader program
-    def compileShaders(self, vertShaderPath, fragShaderPath):
-        with open(vertShaderPath) as vertShaderFile:
-            vertShader = compileShader(vertShaderFile.read(), GL_VERTEX_SHADER)
-
-        with open(fragShaderPath) as fragShaderFile:
-            fragShader = compileShader(fragShaderFile.read(), GL_FRAGMENT_SHADER)
-
-        shaderProgram = compileProgram(vertShader, fragShader)
-        glDeleteShader(vertShader)
-        glDeleteShader(fragShader)
-        return shaderProgram
-
     # Function to render the scene
     def render(self):
-        glUseProgram(self.shaderProgram)
+        self.shaderProgram.use()
         glClear(GL_COLOR_BUFFER_BIT)
 
         self.scene.render()
@@ -93,8 +80,37 @@ class Engine:
     # Function to clean up and terminate the application
     def terminate(self):
         self.scene.terminate()
-        glDeleteProgram(self.shaderProgram)
+        glDeleteProgram(self.shaderProgram.ID)
         pg.quit()
+
+# Class for handeling and managing shaders
+class shaderProgram:
+    def __init__(self,vertPath:str = "shader.vert",fragPath:str = "shader.frag") -> None:
+
+        with open(vertPath) as vertShaderFile:
+            vertShader = compileShader(vertShaderFile.read(), GL_VERTEX_SHADER)
+
+        with open(fragPath) as fragShaderFile:
+            fragShader = compileShader(fragShaderFile.read(), GL_FRAGMENT_SHADER)
+
+        shaderProgram = compileProgram(vertShader, fragShader)
+        glDeleteShader(vertShader)
+        glDeleteShader(fragShader)
+
+        self.ID = shaderProgram
+    
+    def use(self):
+        glUseProgram(self.ID)
+
+    def setBool(self,name:str,value:bool):
+        glUniform1i(glGetUniformLocation(self.ID, name), int(value))
+
+    def setInt(self,name:str,value:int):
+        glUniform1i(glGetUniformLocation(self.ID, name), int(value))
+
+    def setFloat(self,name:str,value:int):
+        glUniform1f(glGetUniformLocation(self.ID, name), float(value))
+
 
 # Create a Mesh class to manage geometry and rendering
 class Mesh:
