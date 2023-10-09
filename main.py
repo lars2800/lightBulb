@@ -31,7 +31,7 @@ class Engine:
         glViewport(0, 0, *self.windSize)
         glClearColor(*self.clearColor)
 
-        self.scene = Triangle()
+        self.scene = Mesh()
 
         self.run()
 
@@ -86,31 +86,54 @@ class Engine:
         glDeleteProgram(self.shaderProgram)
         pg.quit()
 
-class Triangle:
+class Mesh:
     def __init__(self) -> None:
         
-        self.verts = np.array([
-            -0.5, -0.5, 0.0,
-             0.5, -0.5, 0.0,
-             0.0,  0.5, 0.0
+        self.vertices = np.array([
+             0.5,  0.5, 0.0,  # top right
+             0.5, -0.5, 0.0,  # bottom right
+            -0.5, -0.5, 0.0,  # bottom left
+            -0.5,  0.5, 0.0   # top left 
         ],np.float32)
+         
+        self.indices = np.array([
+            0, 1, 3,  # first Triangle
+            1, 2, 3   # second Triangle
+        ],np.int32)
 
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)
+        self.EBO = glGenBuffers(1)
+        # bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
         glBindVertexArray(self.VAO)
 
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferData(GL_ARRAY_BUFFER, self.verts.nbytes, self.verts, GL_STATIC_DRAW)
+        glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 4, ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
 
+        # note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
         glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+        # remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+        #glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        # You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+        # VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
         glBindVertexArray(0)
+
+        # uncomment this call to draw in wireframe polygons.
+        #glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     def render(self):
-        glBindVertexArray(self.VAO)
-        glDrawArrays(GL_TRIANGLES, 0, 3)
+        glBindVertexArray(self.VAO); # seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+        #glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
+        # glBindVertexArray(0); // no need to unbind it every time 
     
     def terminate(self):
         glDeleteVertexArrays(1, (self.VAO,))
