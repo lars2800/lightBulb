@@ -116,6 +116,7 @@ class texture:
     def __init__(self,filePath) -> None:
 
         self.texture = glGenTextures(1)
+        glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.texture)
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
@@ -134,8 +135,8 @@ class texture:
         glDeleteTextures(1,(self.texture, ))
     
     def use(self):
+        glActiveTexture(GL_TEXTURE0)
         glBindTexture(GL_TEXTURE_2D, self.texture)
-
 
 # Create a Mesh class to manage geometry and rendering
 class Mesh:
@@ -192,7 +193,6 @@ class Mesh:
         self.text.terminate()
         glDeleteVertexArrays(1, (self.VAO,))
         glDeleteBuffers(1, (self.VBO,))
-
 
 
 if __name__ == "__main__":
