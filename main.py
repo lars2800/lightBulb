@@ -4,9 +4,10 @@ import numpy as np
 from OpenGL.GL import *
 from OpenGL.GL.shaders import *
 import ctypes
+import glm
 
 # Define the version of the application
-__version__ = "DEV 0.0.1"
+__version__ = "DEV 0.0.2A"
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -22,6 +23,11 @@ class Engine:
         self.clearColor = (0.1, 0.2, 0.2, 1.0)
         self.maxFps = 120  # Maximum frames per second (0 for unlimited)
 
+        # transformation
+        self.trans = glm.mat4(1.0)
+        self.trans = glm.rotate(self.trans, glm.radians(90.0), glm.vec3(0.0,0.0,1.0))
+        self.trans = glm.scale(self.trans, glm.vec3(0.5,0.5,0.5))
+
         # Initialize pygame and set OpenGL context attributes
         pg.init()
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
@@ -35,12 +41,14 @@ class Engine:
         # Compile shaders and set up OpenGL settings
         self.shaderProgram = shaderProgram("shader.vert","shader.frag")
         self.shaderProgram.use()
+        self.shaderProgram.setMat4("transform",self.trans)
+
         glViewport(0, 0, *self.windSize)
         glClearColor(*self.clearColor)
 
         # Create the scene
-        self.mat = texture("brick.png")
-        self.scene = Mesh(self.mat)
+        self.material = texture("brick.png")
+        self.scene = Mesh(self.material)
 
         # Start the main loop
         self.run()
@@ -111,6 +119,9 @@ class shaderProgram:
 
     def setFloat(self,name:str,value:int):
         glUniform1f(glGetUniformLocation(self.ID, name), float(value))
+    
+    def setMat4(self,name:str,value:glm.vec4):
+        glUniformMatrix4fv(glGetUniformLocation(self.ID, name), 1, GL_FALSE, glm.value_ptr(value))
 
 class texture:
     def __init__(self,filePath) -> None:
