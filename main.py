@@ -5,9 +5,10 @@ from OpenGL.GL import *
 from OpenGL.GL.shaders import *
 import ctypes
 import glm
+import time
 
 # Define the version of the application
-__version__ = "DEV 0.0.2A"
+__version__ = "DEV 0.0.2B"
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -22,11 +23,16 @@ class Engine:
         self.windTitle = "Lightbulb " + __version__
         self.clearColor = (0.1, 0.2, 0.2, 1.0)
         self.maxFps = 120  # Maximum frames per second (0 for unlimited)
+        self.deltaTime = 0
+        self.startTime = round(time.time(),2)
 
         # transformation
-        self.trans = glm.mat4(1.0)
-        self.trans = glm.rotate(self.trans, glm.radians(90.0), glm.vec3(0.0,0.0,1.0))
-        self.trans = glm.scale(self.trans, glm.vec3(0.5,0.5,0.5))
+        self.trans = glm.mat4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        )
 
         # Initialize pygame and set OpenGL context attributes
         pg.init()
@@ -52,6 +58,35 @@ class Engine:
 
         # Start the main loop
         self.run()
+    
+    # Main loop function
+    def run(self):
+        self.running = True
+
+        while self.running:
+            self.pollEvents()
+            self.render()
+            self.updateTime()
+            self.updateUniforms()
+
+        self.terminate()
+    
+    # update time related things
+    def updateTime(self):
+        self.pgClock.tick(self.maxFps)
+        self.fps = round(self.pgClock.get_fps(), 1)
+        pg.display.set_caption(self.windTitle + " fps: " + str(self.fps))
+
+        self.deltaTime = round(round(time.time(),2) - self.startTime,2)
+
+        print(self.deltaTime)
+    
+    # update uniforms
+    def updateUniforms(self):
+        self.trans = glm.mat4(1.0)
+        self.trans = glm.translate(self.trans,glm.vec3(0,0,0.0))
+        self.trans = glm.rotate(self.trans,self.deltaTime,glm.vec3(0.0,0.0,1.0))
+        self.shaderProgram.setMat4("transform",self.trans)
 
     # Function to render the scene
     def render(self):
@@ -71,20 +106,6 @@ class Engine:
             if event.type == pg.VIDEORESIZE:  # Window resize
                 self.windSize = event.dict['size']  # New size
                 glViewport(0, 0, *self.windSize)  # Pass to OpenGL
-
-    # Main loop function
-    def run(self):
-        self.running = True
-
-        while self.running:
-            self.pollEvents()
-            self.render()
-
-            self.pgClock.tick(self.maxFps)
-            self.fps = round(self.pgClock.get_fps(), 1)
-            pg.display.set_caption(self.windTitle + " fps: " + str(self.fps))
-
-        self.terminate()
 
     # Function to clean up and terminate the application
     def terminate(self):
