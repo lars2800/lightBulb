@@ -39,7 +39,8 @@ class Engine:
         glClearColor(*self.clearColor)
 
         # Create the scene
-        self.scene = Mesh()
+        self.mat = texture("brick.png")
+        self.scene = Mesh(self.mat)
 
         # Start the main loop
         self.run()
@@ -111,16 +112,40 @@ class shaderProgram:
     def setFloat(self,name:str,value:int):
         glUniform1f(glGetUniformLocation(self.ID, name), float(value))
 
+class texture:
+    def __init__(self,filePath) -> None:
+
+        self.texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.texture)
+        
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+        image = pg.image.load(filePath).convert_alpha()
+        image_width,image_height = image.get_rect().size
+        img_data = pg.image.tostring(image,'RGBA')
+
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA,GL_UNSIGNED_BYTE, img_data)
+        glGenerateMipmap(GL_TEXTURE_2D)
+    
+    def terminate(self):
+        glDeleteTextures(1,(self.texture, ))
+    
+    def use(self):
+        glBindTexture(GL_TEXTURE_2D, self.texture)
+
 
 # Create a Mesh class to manage geometry and rendering
 class Mesh:
-    def __init__(self) -> None:
+    def __init__(self,text:texture) -> None:
         # Define vertex data and indices for a triangle
         self.vertices = np.array([
-            # positions        # colors
-             0.5, -0.5, 0.0,  1.0, 0.0, 0.0,
-            -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,
-             0.0,  0.5, 0.0,  0.0, 0.0, 1.0
+            # positions        # colors       # tex cords
+             0.5, -0.5, 0.0,  1.0, 0.0, 0.0,  1.0,0.0,
+            -0.5, -0.5, 0.0,  0.0, 1.0, 0.0,  0.0,0.0,
+             0.0,  0.5, 0.0,  0.0, 0.0, 1.0,  0.5,1.0
         ], np.float32)
 
         self.indices = np.array([
@@ -131,6 +156,7 @@ class Mesh:
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)
         self.EBO = glGenBuffers(1)
+        self.text = text
 
         # Bind the Vertex Array Object, Vertex Buffer, and Element Buffer
         glBindVertexArray(self.VAO)
@@ -141,11 +167,15 @@ class Mesh:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * 2 * 4, ctypes.c_void_p(4*0))
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (3+3+2) * 4, ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
 
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * 2 * 4, ctypes.c_void_p(4*3))
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, (3+3+2) * 4, ctypes.c_void_p(12))
         glEnableVertexAttribArray(1)
+
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, (3+3+2) * 4, ctypes.c_void_p(24))
+        glEnableVertexAttribArray(2)
 
         # Unbind VBO and VAO
         glBindBuffer(GL_ARRAY_BUFFER, 0)
@@ -153,13 +183,17 @@ class Mesh:
 
     # Function to render the mesh
     def render(self):
+        self.text.use()
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, None)
 
     # Function to clean up and delete OpenGL objects
     def terminate(self):
+        self.text.terminate()
         glDeleteVertexArrays(1, (self.VAO,))
         glDeleteBuffers(1, (self.VBO,))
+
+
 
 if __name__ == "__main__":
     # Create an instance of the Engine class and start the application
