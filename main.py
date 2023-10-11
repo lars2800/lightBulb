@@ -6,7 +6,7 @@ from OpenGL.GL.shaders import *
 import ctypes
 
 # Define the version of the application
-__version__ = "DEV 0.0.0"
+__version__ = "DEV 0.0.1"
 
 # Create an Engine class to manage the main application logic
 class Engine:
