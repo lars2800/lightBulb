@@ -1,14 +1,11 @@
 # Import necessary libraries and modules
-import pygame as pg
-import numpy as np
-from OpenGL.GL import *
-from OpenGL.GL.shaders import *
-import ctypes
-import glm
-import time
+from libs import *
+from mesh import Mesh
+from texture import Texture
+from shader import ShaderProgram
 
 # Define the version of the application
-__version__ = "DEV 0.0.2C"
+__version__ = "DEV 0.0.3"
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -22,7 +19,7 @@ class Engine:
         self.windSize = (800, 600)
         self.windTitle = "Lightbulb " + __version__
         self.clearColor = (0.1, 0.2, 0.2, 1.0)
-        self.maxFps = 120  # Maximum frames per second (0 for unlimited)
+        self.maxFps = 0  # Maximum frames per second (0 for unlimited)
         self.deltaTime = 0
         self.startTime = round(time.time(),2)
 
@@ -45,7 +42,7 @@ class Engine:
         self.pgClock = pg.time.Clock()
 
         # Compile shaders and set up OpenGL settings
-        self.shaderProgram = shaderProgram("shader.vert","shader.frag")
+        self.shaderProgram = ShaderProgram("shader.vert","shader.frag")
         self.shaderProgram.use()
         self.shaderProgram.setMat4("model",     self.identyMat4)
         self.shaderProgram.setMat4("view" ,     self.identyMat4)
@@ -56,7 +53,7 @@ class Engine:
         glClearColor(*self.clearColor)
 
         # Create the scene
-        self.material = texture("brick.png")
+        self.material = Texture("brick.png")
         self.scene = Mesh(self.material)
 
         # Start the main loop
@@ -121,179 +118,6 @@ class Engine:
         glDeleteProgram(self.shaderProgram.ID)
         pg.quit()
 
-# Class for handeling and managing shaders
-class shaderProgram:
-    def __init__(self,vertPath:str = "shader.vert",fragPath:str = "shader.frag") -> None:
-        with open(vertPath) as vertShaderFile:
-            vertShader = compileShader(vertShaderFile.read(), GL_VERTEX_SHADER)
-
-        with open(fragPath) as fragShaderFile:
-            fragShader = compileShader(fragShaderFile.read(), GL_FRAGMENT_SHADER)
-
-        shaderProgram = compileProgram(vertShader, fragShader)
-        glDeleteShader(vertShader)
-        glDeleteShader(fragShader)
-
-        self.ID = shaderProgram
-    
-    def use(self):
-        glUseProgram(self.ID)
-
-    def setBool(self,name:str,value:bool):
-        glUniform1i(glGetUniformLocation(self.ID, name), int(value))
-
-    def setInt(self,name:str,value:int):
-        glUniform1i(glGetUniformLocation(self.ID, name), int(value))
-
-    def setFloat(self,name:str,value:int):
-        glUniform1f(glGetUniformLocation(self.ID, name), float(value))
-    
-    def setMat4(self,name:str,value:glm.vec4):
-        glUniformMatrix4fv(glGetUniformLocation(self.ID, name), 1, GL_FALSE, glm.value_ptr(value))
-
-class texture:
-    def __init__(self,filePath) -> None:
-
-        self.texture = glGenTextures(1)
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.texture)
-        
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-
-        image = pg.image.load(filePath).convert_alpha()
-        image_width,image_height = image.get_rect().size
-        img_data = pg.image.tostring(image,'RGBA')
-
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA,GL_UNSIGNED_BYTE, img_data)
-        glGenerateMipmap(GL_TEXTURE_2D)
-    
-    def terminate(self):
-        glDeleteTextures(1,(self.texture, ))
-    
-    def use(self):
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, self.texture)
-
-# Create a Mesh class to manage geometry and rendering
-class Mesh:
-    def __init__(self,text:texture) -> None:
-        # Define vertex data and indices for a triangle
-        self.vertices = np.array([
-            # positions           # colors       # tex cords
-            -0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     0.0, 1.0,
-            -0.5, -0.5,  0.5,   1.0, 1.0, 1.0,     0.0, 0.0,
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0, 1.0,
-            
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0, 1.0,
-            -0.5, -0.5,  0.5,   1.0, 1.0, 1.0,     0.0, 0.0,
-             0.5, -0.5,  0.5,   1.0, 1.0, 1.0,     1.0, 0.0,
-
-
-            -0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     0.0, 1.0,
-            -0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     0.0, 0.0,
-             0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     1.0, 1.0,
-            
-             0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     1.0, 1.0,
-            -0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     0.0, 0.0,
-             0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     1.0, 0.0,
-
-            
-
-            -0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     0.0,0.0,
-            -0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0,1.0,
-            
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0,1.0,
-            -0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     0.0,0.0,
-             0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-
-
-            -0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     0.0,0.0,
-            -0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0,1.0,
-            
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     1.0,1.0,
-            -0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     0.0,0.0,
-             0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-
-
-
-            -0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     0.0,1.0,
-            -0.5, -0.5,  0.5,   1.0, 1.0, 1.0,     0.0,0.0,
-            -0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-
-            -0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     0.0,1.0,
-            -0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     1.0,1.0,
-            -0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-
-
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     0.0,1.0,
-             0.5, -0.5,  0.5,   1.0, 1.0, 1.0,     0.0,0.0,
-             0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-
-             0.5,  0.5,  0.5,   1.0, 1.0, 1.0,     0.0,1.0,
-             0.5,  0.5, -0.5,   1.0, 1.0, 1.0,     1.0,1.0,
-             0.5, -0.5, -0.5,   1.0, 1.0, 1.0,     1.0,0.0,
-        ], np.float32)
-
-        self.indices = np.array([
-            0,  1 , 2 ,
-            3,  4 , 5 ,
-            6,  7 , 8 ,
-            9,  10, 11,
-            12, 13, 14,
-            15, 16, 17,
-            18, 19, 20,
-            21, 22, 23,
-            24, 25, 26,
-            27, 28, 29,
-            30, 31, 32,
-            33, 34, 35
-        ], np.int32)
-
-        # Generate OpenGL objects for the mesh
-        self.VAO = glGenVertexArrays(1)
-        self.VBO = glGenBuffers(1)
-        self.EBO = glGenBuffers(1)
-        self.text = text
-
-        # Bind the Vertex Array Object, Vertex Buffer, and Element Buffer
-        glBindVertexArray(self.VAO)
-
-        glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
-        glBufferData(GL_ARRAY_BUFFER, self.vertices.nbytes, self.vertices, GL_STATIC_DRAW)
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, self.EBO)
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, self.indices.nbytes, self.indices, GL_STATIC_DRAW)
-
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, (3+3+2) * 4, ctypes.c_void_p(0))
-        glEnableVertexAttribArray(0)
-
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, (3+3+2) * 4, ctypes.c_void_p(12))
-        glEnableVertexAttribArray(1)
-
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, (3+3+2) * 4, ctypes.c_void_p(24))
-        glEnableVertexAttribArray(2)
-
-        # Unbind VBO and VAO
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
-
-    # Function to render the mesh
-    def render(self):
-        self.text.use()
-        glBindVertexArray(self.VAO)
-        glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, None)
-
-    # Function to clean up and delete OpenGL objects
-    def terminate(self):
-        self.text.terminate()
-        glDeleteVertexArrays(1, (self.VAO,))
-        glDeleteBuffers(1, (self.VBO,))
 
 if __name__ == "__main__":
     # Create an instance of the Engine class and start the application
