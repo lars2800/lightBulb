@@ -27,5 +27,5 @@ class ShaderProgram:
     def setFloat(self,name:str,value:int):
         glUniform1f(glGetUniformLocation(self.ID, name), float(value))
     
-    def setMat4(self,name:str,value:glm.vec4):
+    def setMat4(self,name:str,value:glm.mat4):
         glUniformMatrix4fv(glGetUniformLocation(self.ID, name), 1, GL_FALSE, glm.value_ptr(value))

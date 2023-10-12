@@ -3,9 +3,11 @@ from libs import *
 from mesh import Mesh
 from texture import Texture
 from shader import ShaderProgram
+from transform import Transform
+from graphicsObject import GraphicsObject
 
 # Define the version of the application
-__version__ = "DEV 0.0.3"
+__version__ = "DEV 0.0.3B"
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -19,7 +21,7 @@ class Engine:
         self.windSize = (800, 600)
         self.windTitle = "Lightbulb " + __version__
         self.clearColor = (0.1, 0.2, 0.2, 1.0)
-        self.maxFps = 0  # Maximum frames per second (0 for unlimited)
+        self.maxFps = 60  # Maximum frames per second (0 for unlimited)
         self.deltaTime = 0
         self.startTime = round(time.time(),2)
 
@@ -53,8 +55,11 @@ class Engine:
         glClearColor(*self.clearColor)
 
         # Create the scene
-        self.material = Texture("brick.png")
-        self.scene = Mesh(self.material)
+        self.cubeMaterial = Texture("brick.png")
+        self.cubeMesh = Mesh(self.cubeMaterial)
+        self.cubeTransform = Transform(0,0,-3,0,0,0)
+        self.cube = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
+        self.scene  = self.cube
 
         # Start the main loop
         self.run()
@@ -68,6 +73,7 @@ class Engine:
             self.render()
             self.updateTime()
             self.updateUniforms()
+            self.update()
 
         self.terminate()
     
@@ -81,15 +87,11 @@ class Engine:
     
     # update uniforms
     def updateUniforms(self):
-        model = glm.mat4(1.0)
-        model = glm.rotate(model,glm.radians(self.deltaTime*10),glm.vec3(0.0, 1.0, 0.0))
-
         view = glm.mat4(1.0)
-        view = glm.translate(view, glm.vec3(0.0, 0.0 ,-2.0))
+        view = glm.translate(view, glm.vec3(0.0, 0.0 ,0.0))
 
         projection = glm.perspective( glm.radians(45.0), self.windSize[0]/self.windSize[1], 0.1, 100 )
 
-        self.shaderProgram.setMat4("model",model)
         self.shaderProgram.setMat4("view" ,view)
         self.shaderProgram.setMat4("projection",projection)
 
@@ -111,13 +113,16 @@ class Engine:
             if event.type == pg.VIDEORESIZE:  # Window resize
                 self.windSize = event.dict['size']  # New size
                 glViewport(0, 0, *self.windSize)  # Pass to OpenGL
+    
+    def update(self):
+        self.cube.transform.rotY = self.deltaTime * 0.5
 
     # Function to clean up and terminate the application
     def terminate(self):
-        self.scene.terminate()
+        self.cubeMaterial.terminate()
+        self.cubeMesh.terminate()
         glDeleteProgram(self.shaderProgram.ID)
         pg.quit()
-
 
 if __name__ == "__main__":
     # Create an instance of the Engine class and start the application
