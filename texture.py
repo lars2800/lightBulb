@@ -12,7 +12,7 @@ class Texture:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
-        image = pg.transform.flip(pg.image.load(filePath), True, False).convert_alpha()
+        image = pg.transform.flip(pg.image.load(filePath), False, True).convert_alpha()
         image_width,image_height = image.get_rect().size
         img_data = pg.image.tostring(image,'RGBA')
 
