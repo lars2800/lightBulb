@@ -1,6 +1,6 @@
 # Import necessary libraries and modules
 from libs import *
-from mesh import Mesh
+from mesh import cube,lightMesh
 from texture import Texture
 from shader import ShaderProgram
 from transform import Transform
@@ -21,15 +21,16 @@ class Engine:
         This is the main class for the Lightbulb application.
         """
         # Define initial window properties
-        self.windSize = (950, 950)
+        self.windSize = (1920, 1080)
         self.windTitle = "Lightbulb " + __version__
         self.clearColor = (0.1, 0.2, 0.2, 1.0)
-        self.maxFps = 60  # Maximum frames per second (0 for unlimited)
+        self.maxFps = 0  # Maximum frames per second (0 for unlimited)
         self.deltaTime = 0
         self.startTime = round(time.time(),2)
         self.lastFrame = 0
         self.cameraSpeed = 0.1
         self.mouseSens   = 0.1
+        self.camFov = 75
 
         # identyMat4
         self.identyMat4 = glm.mat4(
@@ -55,6 +56,8 @@ class Engine:
         self.shaderProgram.setMat4("model",     self.identyMat4)
         self.shaderProgram.setMat4("view" ,     self.identyMat4)
         self.shaderProgram.setMat4("projection",self.identyMat4)
+        self.shaderProgram.setFloat("width", self.windSize[0])
+        self.shaderProgram.setFloat("height",self.windSize[1])
 
         glViewport(0, 0, *self.windSize)
         glEnable(GL_DEPTH_TEST)
@@ -68,11 +71,17 @@ class Engine:
         self.camera = Camera()
         self.scene = Scene(self.shaderProgram,self.camera)
 
+        self.lightMaterial = Texture("assets/light.png")
+        self.lightMesh = lightMesh(self.lightMaterial)
+        self.lightTransform = Transform(5.0, 0.0, 0.0,  0.0, 0.0, 0.0)
+        self.light = GraphicsObject(self.lightMesh,self.lightTransform,self.lightMaterial,self.shaderProgram)
+
         self.cubeMaterial = Texture("assets/brick.png")
-        self.cubeMesh = Mesh(self.cubeMaterial)
+        self.cubeMesh = cube(self.cubeMaterial)
         self.cubeTransform = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
         self.cube = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
         
+        self.scene.objects.append(self.light)
         self.scene.objects.append(self.cube)
 
         # Start the main loop
@@ -94,7 +103,7 @@ class Engine:
     
     # update time related things
     def updateTime(self):
-        self.lastFrame = round(self.pgClock.tick(self.maxFps)/1000,2)
+        self.lastFrame = round(self.pgClock.tick_busy_loop(self.maxFps)/1000,5)
         self.fps = round(self.pgClock.get_fps(), 1)
         pg.display.set_caption(self.windTitle + " fps: " + str(self.fps))
 
@@ -102,10 +111,11 @@ class Engine:
     
     # update uniforms
     def updateUniforms(self):
-
-        projection = glm.perspective( glm.radians(45.0), self.windSize[0]/self.windSize[1], 0.1, 100 )
-
+        projection = glm.perspective( glm.radians(self.camFov), self.windSize[0]/self.windSize[1], 0.1, 100 )
         self.shaderProgram.setMat4("projection",projection)
+
+        self.shaderProgram.setFloat("width", self.windSize[0])
+        self.shaderProgram.setFloat("height",self.windSize[1])
 
     # Function to render the scene
     def render(self):
@@ -154,6 +164,7 @@ class Engine:
         if keys[pg.K_ESCAPE]:
             self.running = False
         
+        
         if mousePos != (self.windSize[0]*0.5,self.windSize[1]*0.5):
             pg.mouse.set_pos([self.windSize[0]*0.5,self.windSize[1]*0.5])
             mouseMove = (mouseMove[0],-mouseMove[1])
@@ -162,10 +173,11 @@ class Engine:
         
         if not pg.mouse.get_focused():
             pg.mouse.set_pos([self.windSize[0]*0.5,self.windSize[1]*0.5])
-
+        
     # update function
     def update(self):
-        #self.cubeTransform.rotY = self.cubeTransform.rotY + self.lastFrame * 0.1
+        self.cubeTransform.rotY = self.cubeTransform.rotY + self.lastFrame * 0.25
+        self.cubeTransform.rotZ = self.cubeTransform.rotZ + self.lastFrame * 0.10
         self.cameraSpeed = self.lastFrame * 2.5
         
     # Function to clean up and terminate the application

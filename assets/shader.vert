@@ -7,13 +7,15 @@ layout (location = 2) in vec2 aTexCoord;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform float width;
+uniform float height;
 
 out vec3 vertexColor;
 out vec2 TexCoord;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    gl_Position = projection * view * model * (vec4(aPos, 1.0) * (width/height));
     vertexColor = aColor;
     TexCoord = aTexCoord;
 }
