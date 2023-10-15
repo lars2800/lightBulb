@@ -13,6 +13,7 @@ __version__ = "DEV 0.0.3C"
 
 # Create an Engine class to manage the main application logic
 class Engine:
+    #Initlizatian
     def __init__(self) -> None:
         """
         Initialize the Engine class.
@@ -76,15 +77,14 @@ class Engine:
 
         # Start the main loop
         self.run()
-
-    
+   
     # Main loop function
     def run(self):
         self.running = True
 
         while self.running:
             self.pollEvents()
-            self.handleKeys()
+            self.handleInput()
             self.render()
             self.updateTime()
             self.updateUniforms()
@@ -125,8 +125,9 @@ class Engine:
             if event.type == pg.VIDEORESIZE:  # Window resize
                 self.windSize = event.dict['size']  # New size
                 glViewport(0, 0, *self.windSize)  # Pass to OpenGL
-
-    def handleKeys(self):
+    
+    # handels input
+    def handleInput(self):
 
         keys = pg.key.get_pressed()
         mousePos = pg.mouse.get_pos()
@@ -162,12 +163,11 @@ class Engine:
         if not pg.mouse.get_focused():
             pg.mouse.set_pos([self.windSize[0]*0.5,self.windSize[1]*0.5])
 
-    
+    # update function
     def update(self):
         #self.cubeTransform.rotY = self.cubeTransform.rotY + self.lastFrame * 0.1
         self.cameraSpeed = self.lastFrame * 2.5
         
-
     # Function to clean up and terminate the application
     def terminate(self):
         self.cubeMaterial.terminate()
