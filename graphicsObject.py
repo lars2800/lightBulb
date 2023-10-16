@@ -8,6 +8,7 @@ class GraphicsObject:
         self.shader = shader
     
     def render(self):
+        self.meshMaterial.use()
         self.shader.use()
         self.transform.use(self.shader)
         self.mesh.render()

@@ -9,7 +9,21 @@ from scene import Scene
 from camera import Camera
 
 # Define the version of the application
-__version__ = "DEV 0.0.3C"
+__version__ = "DEV 0.0.4"
+
+class Material:
+    def __init__(self,texture:Texture,objectColor:glm.vec3,shader:ShaderProgram) -> None:
+        self.texture     = texture
+        self.objectColor = objectColor
+        self.shader      = shader
+    
+    def terminate(self):
+        self.texture.terminate()
+    
+    def use(self):
+        self.texture.use()
+        self.shader.setVec3("objectColor",self.objectColor)
+        
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -58,6 +72,7 @@ class Engine:
         self.shaderProgram.setMat4("projection",self.identyMat4)
         self.shaderProgram.setFloat("width", self.windSize[0])
         self.shaderProgram.setFloat("height",self.windSize[1])
+        self.shaderProgram.setVec3("objectColor",glm.vec3(0.0,0.0,1.0))
 
         glViewport(0, 0, *self.windSize)
         glEnable(GL_DEPTH_TEST)
@@ -71,16 +86,20 @@ class Engine:
         self.camera = Camera()
         self.scene = Scene(self.shaderProgram,self.camera)
 
-        self.lightTexture = Texture("assets/light.png")
-        self.lightMesh = lightMesh(self.lightTexture)
-        self.lightTransform = Transform(5.0, 0.0, 0.0,  0.0, 0.0, 0.0)
-        self.light = GraphicsObject(self.lightMesh,self.lightTransform,self.lightTexture,self.shaderProgram)
 
-        self.cubeTexture = Texture("assets/brick.png")
-        self.cubeMesh = cube(self.cubeTexture)
-        self.cubeTransform = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
-        self.cube = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeTexture,self.shaderProgram)
+        self.lightTransform = Transform(5.0, 0.0, 0.0,  0.0, 0.0, 0.0)
+        self.lightMesh      = lightMesh()
+        self.lightTexture   = Texture("assets/light.png")
+        self.lightMaterial  = Material(self.lightTexture,glm.vec3(1.0,0.0,0.0),self.shaderProgram)
+        self.light          = GraphicsObject(self.lightMesh,self.lightTransform,self.lightMaterial,self.shaderProgram)
+
+        self.cubeTransform  = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
+        self.cubeMesh       = cube()
+        self.cubeTexture    = Texture("assets/brick.png")
+        self.cubeMaterial   = Material(self.cubeTexture,glm.vec3(0.0,1.0,0.0),self.shaderProgram)
+        self.cube           = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
         
+
         self.scene.objects.append(self.light)
         self.scene.objects.append(self.cube)
 

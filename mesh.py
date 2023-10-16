@@ -3,7 +3,7 @@ from libs import *
 
 # Create a Mesh class to manage geometry and rendering
 class cube:
-    def __init__(self,text) -> None:
+    def __init__(self) -> None:
         # Define vertex data and indices for a triangle
         self.vertices = np.array([
             # positions           # colors       # tex cords
@@ -83,7 +83,6 @@ class cube:
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)
         self.EBO = glGenBuffers(1)
-        self.text = text
 
         # Bind the Vertex Array Object, Vertex Buffer, and Element Buffer
         glBindVertexArray(self.VAO)
@@ -110,18 +109,16 @@ class cube:
 
     # Function to render the mesh
     def render(self):
-        self.text.use()
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, self.vertNum, GL_UNSIGNED_INT, None)
 
     # Function to clean up and delete OpenGL objects
     def terminate(self):
-        self.text.terminate()
         glDeleteVertexArrays(1, (self.VAO,))
         glDeleteBuffers(1, (self.VBO,))
 
 class lightMesh:
-    def __init__(self,text) -> None:
+    def __init__(self) -> None:
         # Define vertex data and indices for a triangle
         self.vertices = np.array([
             # positions           # colors       # tex cords
@@ -201,7 +198,6 @@ class lightMesh:
         self.VAO = glGenVertexArrays(1)
         self.VBO = glGenBuffers(1)
         self.EBO = glGenBuffers(1)
-        self.text = text
 
         # Bind the Vertex Array Object, Vertex Buffer, and Element Buffer
         glBindVertexArray(self.VAO)
@@ -228,12 +224,10 @@ class lightMesh:
 
     # Function to render the mesh
     def render(self):
-        self.text.use()
         glBindVertexArray(self.VAO)
         glDrawElements(GL_TRIANGLES, self.vertNum, GL_UNSIGNED_INT, None)
 
     # Function to clean up and delete OpenGL objects
     def terminate(self):
-        self.text.terminate()
         glDeleteVertexArrays(1, (self.VAO,))
         glDeleteBuffers(1, (self.VBO,))
