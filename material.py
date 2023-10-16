@@ -11,4 +11,4 @@ class Material:
     
     def use(self):
         self.texture.use()
-        self.shader.setVec3("objectColor",self.objectColor)
+        self.shader.setVec3("objectColorIn",self.objectColor)

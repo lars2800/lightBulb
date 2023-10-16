@@ -10,12 +10,12 @@ uniform mat4 projection;
 uniform float width;
 uniform float height;
 
-out vec3 vertexColor;
-out vec2 TexCoord;
+out vec3 vertexColorIn;
+out vec2 TexCoordIn;
 
 void main()
 {
     gl_Position = projection * view * model * (vec4(aPos, 1.0) * (width/height));
-    vertexColor = aColor;
-    TexCoord = aTexCoord;
+    vertexColorIn = aColor;
+    TexCoordIn = aTexCoord;
 }

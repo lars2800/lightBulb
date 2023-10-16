@@ -10,7 +10,7 @@ from camera import Camera
 from material import Material
 
 # Define the version of the application
-__version__ = "DEV 0.0.4"
+__version__ = "DEV 0.0.4A"
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -32,6 +32,7 @@ class Engine:
         self.cameraSpeed = 0.1
         self.mouseSens   = 0.1
         self.camFov = 75
+        self.globalLight = glm.vec3(1.0 ,1.0 ,1.0)
 
         # identyMat4
         self.identyMat4 = glm.mat4(
@@ -59,7 +60,8 @@ class Engine:
         self.shaderProgram.setMat4("projection",self.identyMat4)
         self.shaderProgram.setFloat("width", self.windSize[0])
         self.shaderProgram.setFloat("height",self.windSize[1])
-        self.shaderProgram.setVec3("objectColor",glm.vec3(0.0,0.0,1.0))
+        self.shaderProgram.setVec3("objectColorIn",glm.vec3(0.0,0.0,1.0))
+        self.shaderProgram.setVec3("lightColorIn", self.globalLight)
 
         glViewport(0, 0, *self.windSize)
         glEnable(GL_DEPTH_TEST)
@@ -185,7 +187,7 @@ class Engine:
         self.cubeTransform.rotY = self.cubeTransform.rotY + self.lastFrame * 0.25
         self.cubeTransform.rotZ = self.cubeTransform.rotZ + self.lastFrame * 0.10
         self.cameraSpeed = self.lastFrame * 2.5
-        
+
     # Function to clean up and terminate the application
     def terminate(self):
         self.cubeTexture.terminate()
