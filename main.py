@@ -71,15 +71,15 @@ class Engine:
         self.camera = Camera()
         self.scene = Scene(self.shaderProgram,self.camera)
 
-        self.lightMaterial = Texture("assets/light.png")
-        self.lightMesh = lightMesh(self.lightMaterial)
+        self.lightTexture = Texture("assets/light.png")
+        self.lightMesh = lightMesh(self.lightTexture)
         self.lightTransform = Transform(5.0, 0.0, 0.0,  0.0, 0.0, 0.0)
-        self.light = GraphicsObject(self.lightMesh,self.lightTransform,self.lightMaterial,self.shaderProgram)
+        self.light = GraphicsObject(self.lightMesh,self.lightTransform,self.lightTexture,self.shaderProgram)
 
-        self.cubeMaterial = Texture("assets/brick.png")
-        self.cubeMesh = cube(self.cubeMaterial)
+        self.cubeTexture = Texture("assets/brick.png")
+        self.cubeMesh = cube(self.cubeTexture)
         self.cubeTransform = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
-        self.cube = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
+        self.cube = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeTexture,self.shaderProgram)
         
         self.scene.objects.append(self.light)
         self.scene.objects.append(self.cube)
@@ -182,7 +182,7 @@ class Engine:
         
     # Function to clean up and terminate the application
     def terminate(self):
-        self.cubeMaterial.terminate()
+        self.cubeTexture.terminate()
         self.cubeMesh.terminate()
         glDeleteProgram(self.shaderProgram.ID)
         pg.quit()
