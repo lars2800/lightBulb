@@ -7,23 +7,10 @@ from transform import Transform
 from graphicsObject import GraphicsObject
 from scene import Scene
 from camera import Camera
+from material import Material
 
 # Define the version of the application
 __version__ = "DEV 0.0.4"
-
-class Material:
-    def __init__(self,texture:Texture,objectColor:glm.vec3,shader:ShaderProgram) -> None:
-        self.texture     = texture
-        self.objectColor = objectColor
-        self.shader      = shader
-    
-    def terminate(self):
-        self.texture.terminate()
-    
-    def use(self):
-        self.texture.use()
-        self.shader.setVec3("objectColor",self.objectColor)
-        
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -90,7 +77,7 @@ class Engine:
         self.lightTransform = Transform(5.0, 0.0, 0.0,  0.0, 0.0, 0.0)
         self.lightMesh      = lightMesh()
         self.lightTexture   = Texture("assets/light.png")
-        self.lightMaterial  = Material(self.lightTexture,glm.vec3(1.0,0.0,0.0),self.shaderProgram)
+        self.lightMaterial  = Material(self.lightTexture,glm.vec3(1.0,0.8,0.2),self.shaderProgram)
         self.light          = GraphicsObject(self.lightMesh,self.lightTransform,self.lightMaterial,self.shaderProgram)
 
         self.cubeTransform  = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
@@ -130,7 +117,7 @@ class Engine:
     
     # update uniforms
     def updateUniforms(self):
-        projection = glm.perspective( glm.radians(self.camFov), self.windSize[0]/self.windSize[1], 0.1, 100 )
+        projection = glm.perspective( glm.radians(self.camFov), self.windSize[0]/self.windSize[1], 0.01, 100 )
         self.shaderProgram.setMat4("projection",projection)
 
         self.shaderProgram.setFloat("width", self.windSize[0])
