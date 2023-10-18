@@ -22,17 +22,23 @@ class Engine:
         This is the main class for the Lightbulb application.
         """
         # Define initial window properties
-        self.windSize = (1920, 1080)
-        self.windTitle = "Lightbulb " + __version__
-        self.clearColor = (0.1, 0.2, 0.2, 1.0)
-        self.maxFps = 0  # Maximum frames per second (0 for unlimited)
-        self.deltaTime = 0
-        self.startTime = round(time.time(),2)
-        self.lastFrame = 0
-        self.cameraSpeed = 0.1
-        self.mouseSens   = 0.1
-        self.camFov = 75
-        self.globalLight = glm.vec3(1.0 ,1.0 ,1.0)
+        self.windSize        = (1920, 1080)
+        self.windTitle       = "Lightbulb " + __version__
+        self.clearColor      = (0.1, 0.2, 0.2, 1.0)
+        self.maxFps          = 0  # Maximum frames per second (0 for unlimited)
+        self.deltaTime       = 0
+        self.startTime       = round(time.time(),2)
+        self.lastFrame       = 0
+        self.cameraSpeed     = 0.1
+        self.mouseSens       = 0.1
+        self.camFov          = 75
+        self.ambientLight    = glm.vec3(1.0 ,1.0 ,1.0)
+        self.ambientStrength = 0.1
+        self.lightPosition   = glm.vec3(5.0 ,0.0 ,5.0)
+        self.lightColor      = glm.vec3(1.0,1.0,1.0)
+        self.specularStrength = 1
+        self.shininess       = 32
+        self.diffuseStrength = 1
 
         # identyMat4
         self.identyMat4 = glm.mat4(
@@ -55,13 +61,19 @@ class Engine:
         # Compile shaders and set up OpenGL settings
         self.shaderProgram = ShaderProgram("assets/shader.vert","assets/shader.frag")
         self.shaderProgram.use()
-        self.shaderProgram.setMat4("model",     self.identyMat4)
-        self.shaderProgram.setMat4("view" ,     self.identyMat4)
-        self.shaderProgram.setMat4("projection",self.identyMat4)
-        self.shaderProgram.setFloat("width", self.windSize[0])
-        self.shaderProgram.setFloat("height",self.windSize[1])
-        self.shaderProgram.setVec3("objectColorIn",glm.vec3(0.0,0.0,1.0))
-        self.shaderProgram.setVec3("lightColorIn", self.globalLight)
+        self.shaderProgram.setMat4 ("model",          self.identyMat4)
+        self.shaderProgram.setMat4 ("view" ,          self.identyMat4)
+        self.shaderProgram.setMat4 ("projection",     self.identyMat4)
+        self.shaderProgram.setFloat("width",          self.windSize[0])
+        self.shaderProgram.setFloat("height",         self.windSize[1])
+        self.shaderProgram.setVec3 ("objectColorIn",  glm.vec3(1.0,1.0,1.0))
+        self.shaderProgram.setVec3 ("ambientColor",   self.ambientLight)
+        self.shaderProgram.setVec3 ("lightPosition",  self.lightPosition)
+        self.shaderProgram.setVec3 ("lightColor",     self.lightColor)
+        self.shaderProgram.setFloat("ambientStrength",self.ambientStrength)
+        self.shaderProgram.setFloat("specularStrength",self.specularStrength)
+        self.shaderProgram.setVec3 ("cameraPos",      glm.vec3(0.0, 0.0, 0.0) )
+        self.shaderProgram.setFloat("shininess"      ,self.shininess)
 
         glViewport(0, 0, *self.windSize)
         glEnable(GL_DEPTH_TEST)
@@ -76,7 +88,7 @@ class Engine:
         self.scene = Scene(self.shaderProgram,self.camera)
 
 
-        self.lightTransform = Transform(5.0, 0.0, 0.0,  0.0, 0.0, 0.0)
+        self.lightTransform = Transform(5.0, 5.0, 5.0,  0.0, 0.0, 0.0)
         self.lightMesh      = lightMesh()
         self.lightTexture   = Texture("assets/light.png")
         self.lightMaterial  = Material(self.lightTexture,glm.vec3(1.0,0.8,0.2),self.shaderProgram)
@@ -85,7 +97,7 @@ class Engine:
         self.cubeTransform  = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
         self.cubeMesh       = cube()
         self.cubeTexture    = Texture("assets/brick.png")
-        self.cubeMaterial   = Material(self.cubeTexture,glm.vec3(0.0,1.0,0.0),self.shaderProgram)
+        self.cubeMaterial   = Material(self.cubeTexture,glm.vec3(1.0,1.0,1.0),self.shaderProgram)
         self.cube           = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
         
 
@@ -124,6 +136,15 @@ class Engine:
 
         self.shaderProgram.setFloat("width", self.windSize[0])
         self.shaderProgram.setFloat("height",self.windSize[1])
+
+        self.lightPosition = glm.vec3(self.lightTransform.posX,self.lightTransform.posY,self.lightTransform.posZ)
+        self.shaderProgram.setVec3("lightPosition",glm.vec3(self.lightPosition))
+
+        self.shaderProgram.setVec3 ("cameraPos",self.camera.cameraPos )
+
+        self.shaderProgram.setFloat("specularStrength",self.specularStrength)
+        self.shaderProgram.setFloat("shininess"       ,self.shininess)
+        self.shaderProgram.setFloat("diffuseStrength", self.diffuseStrength)
 
     # Function to render the scene
     def render(self):
@@ -184,8 +205,8 @@ class Engine:
         
     # update function
     def update(self):
-        self.cubeTransform.rotY = self.cubeTransform.rotY + self.lastFrame * 0.25
-        self.cubeTransform.rotZ = self.cubeTransform.rotZ + self.lastFrame * 0.10
+        self.cubeTransform.rotY += self.lastFrame * 0.25
+        #self.cubeTransform.rotX += self.lastFrame * 0.5
         self.cameraSpeed = self.lastFrame * 2.5
 
     # Function to clean up and terminate the application
