@@ -13,25 +13,16 @@ uniform float diffuseStrength;
 uniform float ambientStrength;
 uniform float shininess;
 
-uniform vec3 lightPosition; 
-uniform vec3 cameraPos; 
-uniform vec3 lightColor;
+uniform vec3 cameraPos;
 
 uniform vec3 objectColor;
 uniform vec3 ambientColor;
 uniform vec3 objectSpecular;
 uniform vec3 objectDiffuse;
 
-void main()
-{
-    //flatColor
-    vec4 textureColor = texture(textureSampler,TexCoord);
-    vec3 objectColor  = objectColor;
-    vec3 vertexColor  = VertexColor;
-    vec3 flatColor    = textureColor.rgb * objectColor * vertexColor;
+uniform vec3[256] lights;
 
-    // ambient
-    vec3 ambient = ambientStrength * ambientColor;
+vec3 calcLight(vec3 lightPosition,vec3 lightColor){
   	
     // diffuse 
     vec3 norm = normalize(Normal);
@@ -43,8 +34,23 @@ void main()
     vec3 viewDir = normalize(cameraPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);  
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
-    vec3 specular = specularStrength * (spec*objectSpecular) * lightColor;  
-        
-    vec3 result = (ambient + diffuse + specular) * flatColor;
-    FragColor = vec4(result, 1.0);
-} 
+    vec3 specular = specularStrength * (spec*objectSpecular) * lightColor;
+
+    return (diffuse + specular);
+}
+
+void main()
+{
+    //flatColor
+    vec4 textureColor = texture(textureSampler,TexCoord);
+    vec3 objectColor  = objectColor;
+    vec3 vertexColor  = VertexColor;
+    vec3 flatColor    = textureColor.rgb * objectColor * vertexColor;
+
+    vec3 lightsum = vec3(0.0,0.0,0.0);
+    for (int i = 0; i < lights.length(); i++){
+        lightsum = lightsum + calcLight(lights[i*2],lights[i*2+1]);
+    }
+
+    FragColor = vec4( ( (ambientColor * ambientStrength) + lightsum) * flatColor , 1.0 );
+}

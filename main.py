@@ -9,8 +9,10 @@ from scene import Scene
 from camera import Camera
 from material import Material
 
+
 # Define the version of the application.
-__version__ = "DEV 0.0.4B"
+__version__ = "DEV 0.0.5"
+
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -34,8 +36,6 @@ class Engine:
         self.camFov          = 75
 
         self.ambientStrength = 0.5
-        self.lightPosition   = glm.vec3(5.0 ,0.0 ,5.0)
-        self.lightColor      = glm.vec3(1.0,1.0,1.0)
         self.specularStrength = 1
         self.diffuseStrength = 1
 
@@ -66,8 +66,6 @@ class Engine:
         self.shaderProgram.setFloat("width"           ,self.windSize[0])
         self.shaderProgram.setFloat("height"          ,self.windSize[1])
         self.shaderProgram.setVec3 ("objectColor"     ,glm.vec3(1.0,1.0,1.0))
-        self.shaderProgram.setVec3 ("lightPosition"   ,self.lightPosition)
-        self.shaderProgram.setVec3 ("lightColor"      ,self.lightColor)
         self.shaderProgram.setFloat("ambientStrength" ,self.ambientStrength)
         self.shaderProgram.setFloat("specularStrength",self.specularStrength)
         self.shaderProgram.setVec3 ("cameraPos"       ,glm.vec3(0.0, 0.0, 0.0) )
@@ -92,24 +90,27 @@ class Engine:
         self.lightTransform = Transform(5.0, 5.0, 5.0,  0.0, 0.0, 0.0)
         self.lightMesh      = lightMesh()
         self.lightTexture   = Texture("assets/light.png")
-        self.lightMaterial  = Material(self.lightTexture,self.shaderProgram)
+        self.lightMaterial  = Material(self.lightTexture,self.shaderProgram,shininess=128)
         self.light          = GraphicsObject(self.lightMesh,self.lightTransform,self.lightMaterial,self.shaderProgram)
 
         self.cubeTransform  = Transform(0.0 ,0.0 , 0.0   ,0.0 ,0.0 ,0.0)
         self.cubeMesh       = cube()
         self.cubeTexture    = Texture("assets/brick.png")
-        self.cubeMaterial   = Material(self.cubeTexture,self.shaderProgram)
+        self.cubeMaterial   = Material(self.cubeTexture,self.shaderProgram,shininess=128)
         self.cube           = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
         
         self.testCubeTransform = Transform(3.0, 0.0, 0.0,   0.0, 0.0, 0.0)
         self.testCubeMesh      = cube()
         self.testCubeTexture   = Texture("assets/light.png")
-        self.testCubeMaterial  = Material(self.testCubeTexture, self.shaderProgram)
+        self.testCubeMaterial  = Material(self.testCubeTexture, self.shaderProgram,shininess=128)
         self.testCube          = GraphicsObject(self.testCubeMesh,self.testCubeTransform,self.testCubeMaterial,self.shaderProgram)
 
         self.scene.objects.append(self.light)
         self.scene.objects.append(self.cube)
         self.scene.objects.append(self.testCube)
+
+        self.shaderProgram.setVec3("lights[0]", glm.vec3(self.lightTransform.posX, self.lightTransform.posY, self.lightTransform.posZ) )
+        self.shaderProgram.setVec3("lights[1]", glm.vec3(1.0,1.0,1.0) )
 
         # Start the main loop
         self.run()
@@ -143,9 +144,6 @@ class Engine:
 
         self.shaderProgram.setFloat("width", self.windSize[0])
         self.shaderProgram.setFloat("height",self.windSize[1])
-
-        self.lightPosition = glm.vec3(self.lightTransform.posX,self.lightTransform.posY,self.lightTransform.posZ)
-        self.shaderProgram.setVec3("lightPosition",glm.vec3(self.lightPosition))
 
         self.shaderProgram.setVec3 ("cameraPos",self.camera.cameraPos )
 
@@ -221,6 +219,7 @@ class Engine:
         self.cubeMesh.terminate()
         glDeleteProgram(self.shaderProgram.ID)
         pg.quit()
+
 
 if __name__ == "__main__":
     # Create an instance of the Engine class and start the application
