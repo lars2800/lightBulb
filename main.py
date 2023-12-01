@@ -1,6 +1,6 @@
 # Import necessary libraries and modules
 from libs import *
-from mesh import cube,lightMesh
+from mesh import cube
 from texture import Texture
 from shader import ShaderProgram
 from transform import Transform
@@ -9,10 +9,8 @@ from scene import Scene
 from camera import Camera
 from material import Material
 
-
 # Define the version of the application.
-__version__ = "DEV 0.0.5"
-
+__version__ = "DEV 0.0.6"
 
 # Create an Engine class to manage the main application logic
 class Engine:
@@ -87,8 +85,8 @@ class Engine:
         self.scene = Scene(self.shaderProgram,self.camera)
 
 
-        self.lightTransform = Transform(5.0, 5.0, 5.0,  0.0, 0.0, 0.0)
-        self.lightMesh      = lightMesh()
+        self.lightTransform = Transform(2.5, 0.0, 0.0,  0.0, 0.0, 0.0,  0.5,0.5,0.5)
+        self.lightMesh      = cube()
         self.lightTexture   = Texture("assets/light.png")
         self.lightMaterial  = Material(self.lightTexture,self.shaderProgram,shininess=128)
         self.light          = GraphicsObject(self.lightMesh,self.lightTransform,self.lightMaterial,self.shaderProgram)
@@ -98,16 +96,9 @@ class Engine:
         self.cubeTexture    = Texture("assets/brick.png")
         self.cubeMaterial   = Material(self.cubeTexture,self.shaderProgram,shininess=128)
         self.cube           = GraphicsObject(self.cubeMesh,self.cubeTransform,self.cubeMaterial,self.shaderProgram)
-        
-        self.testCubeTransform = Transform(3.0, 0.0, 0.0,   0.0, 0.0, 0.0)
-        self.testCubeMesh      = cube()
-        self.testCubeTexture   = Texture("assets/light.png")
-        self.testCubeMaterial  = Material(self.testCubeTexture, self.shaderProgram,shininess=128)
-        self.testCube          = GraphicsObject(self.testCubeMesh,self.testCubeTransform,self.testCubeMaterial,self.shaderProgram)
 
         self.scene.objects.append(self.light)
         self.scene.objects.append(self.cube)
-        self.scene.objects.append(self.testCube)
 
         self.shaderProgram.setVec3("lights[0]", glm.vec3(self.lightTransform.posX, self.lightTransform.posY, self.lightTransform.posZ) )
         self.shaderProgram.setVec3("lights[1]", glm.vec3(1.0,1.0,1.0) )
@@ -217,6 +208,8 @@ class Engine:
     def terminate(self):
         self.cubeTexture.terminate()
         self.cubeMesh.terminate()
+        self.lightMesh.terminate()
+        self.lightTexture.terminate()
         glDeleteProgram(self.shaderProgram.ID)
         pg.quit()
 
