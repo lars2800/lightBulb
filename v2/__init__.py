@@ -1,19 +1,52 @@
+from __future__ import annotations
 import OpenGL.GL
 import OpenGL.GL.shaders
 import glfw
 import glfw.GLFW as GLFW_CONSTANTS
 import numpy as np
 import ctypes
-import pyrr
+import glm
 import time
+import math
 
 import threading
+
+class Camera:
+    def __init__(self) -> None:
+        self.transform = Transform()
+    
+    def setActiveCamera(self) -> None:
+        pass
+
+    def getCameraMatrix(self) -> glm.mat4x4:
+        front = glm.vec3()
+        front.x = math.cos(glm.radians( self.transform.eulerAngles.y )) * math.cos(glm.radians( self.transform.eulerAngles.x ))
+        front.y = math.sin(glm.radians( self.transform.eulerAngles.x ))
+        front.z = math.sin(glm.radians( self.transform.eulerAngles.y )) * math.cos(glm.radians( self.transform.eulerAngles.x ))
+        front = glm.normalize(front)
+
+        right = glm.normalize(glm.cross(front, glm.vec3(0.0, 1.0, 0.0)) )
+        up = glm.normalize(glm.cross(right, front) )
+
+        return glm.lookAt(self.transform.position, self.transform.position + front, up)
 
 class Transform:
     def __init__(self) -> None:
         
-        self.position = pyrr.vector3.create(0,0,0)
-        self.eulerAngles = pyrr.vector3.create(0,0,0)
+        self.position = glm.vec3()
+        self.eulerAngles = glm.vec3()
+    
+    def Translate(self,offset:glm.vec3) -> Transform:
+
+        self.position = self.position + offset
+
+        return self
+    
+    def Rotate(self,offset:glm.vec3) -> Transform:
+        
+        self.eulerAngles = self.eulerAngles + offset
+
+        return self
 
 class GraphicsObject:
     def __init__(self) -> None:
@@ -70,26 +103,15 @@ class GraphicsObject:
         self.vertexCount = int( 12 * 3 )
         self.transform = Transform()
     
-    def getModelTransform(self) -> np.ndarray:
+    def getModelTransform(self) -> glm.mat4x4:
         
-        model_transform = pyrr.matrix44.create_identity(dtype=np.float32)
+        model_transform = glm.identity(glm.mat4x4)
 
-        model_transform = pyrr.matrix44.multiply(
-            m1=model_transform, 
-            m2=pyrr.matrix44.create_from_axis_rotation(
-                axis = [0, 1, 0],
-                theta = np.radians(self.transform.eulerAngles[1]), 
-                dtype = np.float32
-            )
-        )
+        model_transform = model_transform * glm.rotate( glm.mat4x4(1), glm.radians(self.transform.eulerAngles.y) , glm.vec3(0,1,0) )
 
-        return pyrr.matrix44.multiply(
-            m1=model_transform, 
-            m2=pyrr.matrix44.create_from_translation(
-                vec=np.array(self.transform.position),dtype=np.float32
-            )
-        )
-    
+        return model_transform * glm.translate( self.transform.position )
+
+
     def render(self,shaderProgram) -> None:
 
         self.vertexData = np.array(self.vertexDataRaw, dtype=np.float32)
@@ -114,7 +136,7 @@ class GraphicsObject:
 
         # Update uniforms
         self.modelTransform = self.getModelTransform()
-        OpenGL.GL.glUniformMatrix4fv( OpenGL.GL.glGetUniformLocation(shaderProgram,"model") , 1, OpenGL.GL.GL_FALSE, self.modelTransform )
+        OpenGL.GL.glUniformMatrix4fv( OpenGL.GL.glGetUniformLocation(shaderProgram,"model") , 1, OpenGL.GL.GL_FALSE, glm.value_ptr( self.modelTransform ))
 
         # Render
         OpenGL.GL.glBindVertexArray(self.vao)
@@ -209,11 +231,10 @@ class GraphicsEngine:
 
     def setUniforms(self) -> None:
 
-        projection_transform = pyrr.matrix44.create_perspective_projection(
-            fovy = self.fov_y, aspect = self.window_size[0]/self.window_size[1], 
-            near = self.nearPlane, far = self.farPlane, dtype=np.float32
-        )
-        OpenGL.GL.glUniformMatrix4fv( OpenGL.GL.glGetUniformLocation(self.shaderProgram,"projection"), 1, OpenGL.GL.GL_FALSE, projection_transform )
+        projection_transform = glm.perspective( self.fov_y, (self.window_size[0]/self.window_size[1]),self.nearPlane, self.farPlane )
+        projection_location = OpenGL.GL.glGetUniformLocation(self.shaderProgram,"projection")
+
+        OpenGL.GL.glUniformMatrix4fv( projection_location , 1, OpenGL.GL.GL_FALSE, glm.value_ptr( projection_transform ) )
 
     def render(self) -> None:
         """
@@ -302,6 +323,8 @@ class GraphicsEngine:
 
 if __name__ == "__main__":
 
+    glm.atan(10)
+
     def Update() -> None:
 
         # rotate cube
@@ -319,6 +342,6 @@ if __name__ == "__main__":
     DEMO_renderEngine.window_name = "Demo window"
     DEMO_renderEngine.window_size = (600,600) # Width, height
     DEMO_renderEngine.objects.append( GraphicsObject() )
-    DEMO_renderEngine.objects[0].transform.position[2] = -10
+    DEMO_renderEngine.objects[0].transform.position[2] = 10
     DEMO_renderEngine.graphicsTick = Update
     DEMO_renderEngine.run()
