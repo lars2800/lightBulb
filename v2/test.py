@@ -1,357 +1,217 @@
-import pygame as pg
-from OpenGL.GL import *
-from OpenGL.GL.shaders import compileProgram,compileShader
+from __future__ import annotations
+import OpenGL.GL
+import OpenGL.GL.shaders
+import glfw
+import glfw.GLFW as GLFW_CONSTANTS
 import numpy as np
-import pyrr
+import ctypes
+import glm
+import time
+import math
 
-def create_shader(vertex_filepath: str, fragment_filepath: str) -> int:
-    """
-        Compile and link shader modules to make a shader program.
 
-        Parameters:
+class GraphicsCore:
+    def __init__(self) -> None:
+        """
 
-            vertex_filepath: path to the text file storing the vertex
-                            source code
-            
-            fragment_filepath: path to the text file storing the
-                                fragment source code
+        Handles the graphics logic like the render loop, terminate memory, initzialaze opengl...
+
+        """        
         
+        # Varibles that can be edited by user
+        self.window_width  = 500
+        self.window_height = 500
+        self.window_title = "Lightbulb Engine"
+        self.max_fps = 60
+        self.nearPlane = 0.1
+        self.farPlane  = 100
+        self.shader_fragment_source = "frag.glsl"
+        self.shader_vertex_source   = "vert.glsl"
+        self.fovY = 45
+
+        # Internel varibles dont touch as user
+        self.running = True
+        self.window = None
+        self.frameTime = 0
+        self.shaderProgram = None
+        self.fps = 0
+    
+    def start(self) -> None:
+        """
+
+        Initzialze, run the renderloop and terminate the logic (frees up memory)
+
+        """        
+
+        self.initzialze()
+        self.renderLoop()
+        self.terminate()
+    
+    def stop(self) -> None:
+        """
+
+        Stops the running render thread
+
+        """        
+        self.running = False
+
+    def initzialze(self) -> None:
+        """
+
+        Initzialzes GLFW and OPENGL
+
+        """        
+        self.initzialzeGLFW()
+        self.initzialzeOpenGL()
+
+    def renderLoop(self) -> None:
+        """
+
+        Starts the renderloop
+
+        """        
+        
+        self.running = True
+        self.frameStartTime = time.time()
+
+        while(self.running):
+
+            self.pollEvents()
+            self.render()
+            self.pollTime()
+        
+        self.terminate()
+    
+    def terminate(self) -> None:
+        """
+
+        De iniziales glfw and opengl,
+        Frees up memory by destrying things like shaderPrograms, objects...
+
+        """        
+        glfw.terminate()
+
+    def initzialzeGLFW(self) -> None:
+        """
+
+        Initizalses GLFW and creates an window
+
+        """        
+        glfw.init()
+
+        # set opengl version to 3.3 core ( modern opengl )
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_CONTEXT_VERSION_MAJOR,3)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_CONTEXT_VERSION_MINOR,3)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_OPENGL_PROFILE, GLFW_CONSTANTS.GLFW_OPENGL_CORE_PROFILE)
+        glfw.window_hint(GLFW_CONSTANTS.GLFW_OPENGL_FORWARD_COMPAT, GLFW_CONSTANTS.GLFW_TRUE )
+
+        # create an window
+        self.window = glfw.create_window( self.window_width , self.window_height , self.window_title, None, None)
+
+        # set the opengl context to his new window
+        glfw.make_context_current(self.window)
+
+    def initzialzeOpenGL(self) -> None:
+        """
+
+        Initzialzes OPENGL
+
+        """
+
+        # Load and compile shaders to an shaderProgram
+        vertexShaderText   = open(self.shader_vertex_source,   "r").read()
+        fragmentShaderText = open(self.shader_fragment_source, "r").read()
+        self.shaderProgram = self.compileShaderProgram( vertexShaderText, fragmentShaderText )
+
+        # Set active shader to this shader
+        OpenGL.GL.glUseProgram( self.shaderProgram )
+
+        # Enable depth and set clear color
+        OpenGL.GL.glClearColor( 0.1, 0.1, 0.1, 0 ) # red green blue, transparancy ( 1 = transparent )
+        OpenGL.GL.glEnable( OpenGL.GL.GL_DEPTH_TEST )
+
+    def pollEvents(self) -> None:
+        """
+
+        Polls the events
+
+        """        
+        glfw.poll_events()
+
+        if (glfw.window_should_close(self.window)):
+            self.stop()
+
+    def pollTime(self) -> None:
+        """
+
+        Caclurtes times and so forth
+
+        """        
+        # Calcurate frametime
+        frameEndTime   = time.time()
+        frameStartTime = self.frameStartTime
+        frameTime = frameEndTime - frameStartTime
+        
+        # Adjust frame time if the fps is too high
+        targetFrameTime = 1 / self.max_fps
+        if ( frameTime < targetFrameTime ):
+            time.sleep( targetFrameTime - frameTime )
+        
+        # Set the frame time for the other functions to the adjusted frame time ( the actual frame time )
+        adjustedFrameTime = frameStartTime - time.time()
+        self.frameTime = adjustedFrameTime
+        self.fps = 1 / self.frameTime
+
+        # For next frame
+        self.frameStartTime = time.time()
+
+    def render(self) -> None:
+        """
+
+        Renders the scene
+
+        """        
+        OpenGL.GL.glClear( OpenGL.GL.GL_COLOR_BUFFER_BIT ) # Clear previous screen
+        OpenGL.GL.glClear( OpenGL.GL.GL_DEPTH_BUFFER_BIT ) # Clear previous depth buffer
+
+        glfw.swap_buffers( self.window ) # Draw to the screen
+
+    def compileShaderProgram(self,vertexShaderText:str,fragmentShaderText:str) -> OpenGL.GL.shaders.ShaderProgram:
+        """
+        Given the vertexShader in text and the fragmentShader in text it will return an compiled ShaderProgram
+
+        Args:
+            vertexShaderText (str): The vertex shader in text
+            fragmentShaderText (str): The fragment shader in text
+
         Returns:
+            OpenGL.GL.shaders.ShaderProgram: The compiled shaderprogram
+        """        
+        vertexShader   = OpenGL.GL.shaders.compileShader( vertexShaderText,   OpenGL.GL.GL_VERTEX_SHADER   )
+        fragmentShader = OpenGL.GL.shaders.compileShader( fragmentShaderText, OpenGL.GL.GL_FRAGMENT_SHADER )
 
-            A handle to the created shader program
-    """
+        shaderProgram = OpenGL.GL.shaders.compileProgram( vertexShader, fragmentShader )
 
-    with open(vertex_filepath,'r') as f:
-        vertex_src = f.readlines()
+        OpenGL.GL.glDeleteShader(vertexShader)
+        OpenGL.GL.glDeleteShader(fragmentShader)
 
-    with open(fragment_filepath,'r') as f:
-        fragment_src = f.readlines()
+        return shaderProgram
     
-    shader = compileProgram(compileShader(vertex_src, GL_VERTEX_SHADER),
-                            compileShader(fragment_src, GL_FRAGMENT_SHADER))
-    
-    return shader
-
-class Entity:
-    """
-        A basic object in the world, with a position and rotation.
-    """
-
-
-    def __init__(self, position: list[float], eulers: list[float]):
-        """
-            Initialize the entity.
-
-            Parameters:
-
-                position: the position of the entity.
-
-                eulers: the rotation of the entity
-                        about each axis.
-        """
-
-        self.position = np.array(position, dtype=np.float32)
-        self.eulers = np.array(eulers, dtype=np.float32)
-    
-    def update(self) -> None:
-        """
-            Update the object, this is hard coded for now.
-        """
-
-        self.eulers[1] += 0.25
-        
-        if self.eulers[1] > 360:
-            self.eulers[1] -= 360
-
-    def get_model_transform(self) -> np.ndarray:
-        """
-            Returns the entity's model to world
-            transformation matrix.
-        """
-
-        model_transform = pyrr.matrix44.create_identity(dtype=np.float32)
-
-        model_transform = pyrr.matrix44.multiply(
-            m1=model_transform, 
-            m2=pyrr.matrix44.create_from_axis_rotation(
-                axis = [0, 1, 0],
-                theta = np.radians(self.eulers[1]), 
-                dtype = np.float32
-            )
-        )
-
-        return pyrr.matrix44.multiply(
-            m1=model_transform, 
-            m2=pyrr.matrix44.create_from_translation(
-                vec=np.array(self.position),dtype=np.float32
-            )
-        )
-
-class App:
-    """
-        For now, the app will be handling everything.
-        Later on we'll break it into subcomponents.
-    """
-
-
-    def __init__(self):
-        """ Initialise the program """
-
-        self._set_up_pygame()
-
-        self._set_up_timer()
-
-        self._set_up_opengl()
-
-        self._create_assets()
-
-        self._set_onetime_uniforms()
-
-        self._get_uniform_locations()
-    
-    def _set_up_pygame(self) -> None:
-        """
-            Initialize and configure pygame.
-        """
-
-        pg.init()
-        pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
-        pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
-        pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK,
-                                    pg.GL_CONTEXT_PROFILE_CORE)
-        pg.display.set_mode((640,480), pg.OPENGL|pg.DOUBLEBUF)
-
-    def _set_up_timer(self) -> None:
-        """
-            Set up the app's timer.
-        """
-
-        self.clock = pg.time.Clock()
-
-    def _set_up_opengl(self) -> None:
-        """
-            Configure any desired OpenGL options
-        """
-
-        glClearColor(0.1, 0.2, 0.2, 1)
-        glEnable(GL_DEPTH_TEST)
-    
-    def _create_assets(self) -> None:
-        """
-            Create all of the assets needed for drawing.
-        """
-
-        self.cube = Entity(
-            position = [0,0,-3],
-            eulers = [0,0,0]
-        )
-        self.cube_mesh = CubeMesh()
-        self.wood_texture = Material("gfx/wood.jpeg")
-        self.shader = create_shader(
-            vertex_filepath = "shaders/vertex.txt", 
-            fragment_filepath = "shaders/fragment.txt")
-    
-    def _set_onetime_uniforms(self) -> None:
-        """
-            Some shader data only needs to be set once.
-        """
-
-        glUseProgram(self.shader)
-        glUniform1i(glGetUniformLocation(self.shader, "imageTexture"), 0)
-
-        projection_transform = pyrr.matrix44.create_perspective_projection(
-            fovy = 45, aspect = 640/480, 
-            near = 0.1, far = 10, dtype=np.float32
-        )
-        glUniformMatrix4fv(
-            glGetUniformLocation(self.shader,"projection"),
-            1, GL_FALSE, projection_transform
-        )
-    
-    def _get_uniform_locations(self) -> None:
-        """
-            Query and store the locations of shader uniforms
-        """
-
-        glUseProgram(self.shader)
-        self.modelMatrixLocation = glGetUniformLocation(self.shader,"model")
-    
-    def run(self) -> None:
-        """ Run the app """
-
-        running = True
-        while (running):
-            #check events
-            for event in pg.event.get():
-                if (event.type == pg.QUIT):
-                    running = False
-            
-            #update cube
-            self.cube.update()
-            
-            #refresh screen
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            glUseProgram(self.shader)
-
-            
-            glUniformMatrix4fv(
-                self.modelMatrixLocation, 1, GL_FALSE, 
-                self.cube.get_model_transform())
-            self.wood_texture.use()
-            self.cube_mesh.arm_for_drawing()
-            self.cube_mesh.draw()
-
-            pg.display.flip()
-
-            #timing
-            self.clock.tick(60)
-
-    def quit(self) -> None:
-        """ cleanup the app, run exit code """
-
-        self.cube_mesh.destroy()
-        self.wood_texture.destroy()
-        glDeleteProgram(self.shader)
-        pg.quit()
-
-class CubeMesh:
-    """
-        Used to draw a cube.
-    """
-
-    def __init__(self):
-        """
-            Initialize a triangle.
-        """
-
-        # x, y, z, s, t
-        vertices = (
-            -0.5, -0.5, -0.5, 0, 0,
-             0.5, -0.5, -0.5, 1, 0,
-             0.5,  0.5, -0.5, 1, 1,
-
-             0.5,  0.5, -0.5, 1, 1,
-            -0.5,  0.5, -0.5, 0, 1,
-            -0.5, -0.5, -0.5, 0, 0,
-
-            -0.5, -0.5,  0.5, 0, 0,
-             0.5, -0.5,  0.5, 1, 0,
-             0.5,  0.5,  0.5, 1, 1,
-
-             0.5,  0.5,  0.5, 1, 1,
-            -0.5,  0.5,  0.5, 0, 1,
-            -0.5, -0.5,  0.5, 0, 0,
-
-            -0.5,  0.5,  0.5, 1, 0,
-            -0.5,  0.5, -0.5, 1, 1,
-            -0.5, -0.5, -0.5, 0, 1,
-
-            -0.5, -0.5, -0.5, 0, 1,
-            -0.5, -0.5,  0.5, 0, 0,
-            -0.5,  0.5,  0.5, 1, 0,
-
-             0.5,  0.5,  0.5, 1, 0,
-             0.5,  0.5, -0.5, 1, 1,
-             0.5, -0.5, -0.5, 0, 1,
-
-             0.5, -0.5, -0.5, 0, 1,
-             0.5, -0.5,  0.5, 0, 0,
-             0.5,  0.5,  0.5, 1, 0,
-
-            -0.5, -0.5, -0.5, 0, 1,
-             0.5, -0.5, -0.5, 1, 1,
-             0.5, -0.5,  0.5, 1, 0,
-
-             0.5, -0.5,  0.5, 1, 0,
-            -0.5, -0.5,  0.5, 0, 0,
-            -0.5, -0.5, -0.5, 0, 1,
-
-            -0.5,  0.5, -0.5, 0, 1,
-             0.5,  0.5, -0.5, 1, 1,
-             0.5,  0.5,  0.5, 1, 0,
-
-             0.5,  0.5,  0.5, 1, 0,
-            -0.5,  0.5,  0.5, 0, 0,
-            -0.5,  0.5, -0.5, 0, 1
-        )
-        self.vertex_count = len(vertices)//5
-        vertices = np.array(vertices, dtype=np.float32)
-
-        self.vao = glGenVertexArrays(1)
-        glBindVertexArray(self.vao)
-        self.vbo = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
-
-        glEnableVertexAttribArray(0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(0))
-
-        glEnableVertexAttribArray(1)
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 20, ctypes.c_void_p(12))
-    
-    def arm_for_drawing(self) -> None:
-        """
-            Arm the triangle for drawing.
-        """
-        glBindVertexArray(self.vao)
-    
-    def draw(self) -> None:
-        """
-            Draw the triangle.
-        """
-
-        glDrawArrays(GL_TRIANGLES, 0, self.vertex_count)
-
-    def destroy(self) -> None:
-        """
-            Free any allocated memory.
-        """
-        
-        glDeleteVertexArrays(1,(self.vao,))
-        glDeleteBuffers(1,(self.vbo,))
-
-class Material:
-    """
-        A basic texture.
-    """
-
-    
-    def __init__(self, filepath: str):
-        """
-            Initialize and load the texture.
-
-            Parameters:
-
-                filepath: path to the image file.
-        """
-
-        self.texture = glGenTextures(1)
-        glBindTexture(GL_TEXTURE_2D, self.texture)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        image = pg.image.load(filepath).convert()
-        image_width,image_height = image.get_rect().size
-        img_data = pg.image.tostring(image,'RGBA')
-        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,image_width,image_height,0,GL_RGBA,GL_UNSIGNED_BYTE,img_data)
-        glGenerateMipmap(GL_TEXTURE_2D)
-
-    def use(self) -> None:
-        """
-            Arm the texture for drawing.
-        """
-
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D,self.texture)
-
-    def destroy(self) -> None:
-        """
-            Free the texture.
-        """
-
-        glDeleteTextures(1, (self.texture,))
-
-my_app = App()
-my_app.run()
-my_app.quit()
+if __name__ == "__main__":
+
+    # Create an new graphics engine core
+    demoGraphicsEngine = GraphicsCore()
+
+    # Settings u can adjust
+    demoGraphicsEngine.window_width  = 600 # Window width in pixels
+    demoGraphicsEngine.window_height = 600 # Window height in pixels
+    demoGraphicsEngine.window_title = "DEMO PROGRAM" # The tiltle of the window
+    demoGraphicsEngine.max_fps = 75 # The target or max fps
+    demoGraphicsEngine.nearPlane = 0.1 # Anything closer will not render
+    demoGraphicsEngine.farPlane  = 100 # Anything further will not ender
+    demoGraphicsEngine.shader_fragment_source = "frag.glsl" # The fragment shader path
+    demoGraphicsEngine.shader_vertex_source   = "vert.glsl" # The vertex   shader path
+    demoGraphicsEngine.fovY = 45 # The fov of view verticly
+
+    # Start the engine
+    demoGraphicsEngine.start()

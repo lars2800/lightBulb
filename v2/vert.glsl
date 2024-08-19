@@ -11,6 +11,9 @@ out vec3 fragCol;
 
 void main()
 {
+    
+
+
     vec3 actualVert = vertexPos;
     gl_Position = projection * view * model * vec4(actualVert, 1.0);
     fragCol = vertexCol;

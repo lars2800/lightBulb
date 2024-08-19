@@ -14,21 +14,23 @@ import threading
 class Camera:
     def __init__(self) -> None:
         self.transform = Transform()
+        self.transform.eulerAngles.x = 90
     
-    def setActiveCamera(self) -> None:
-        pass
+    def setActiveCamera(self,shaderProgram) -> None:
+
+        view_location = OpenGL.GL.glGetUniformLocation(shaderProgram,"view")
+
+        print(f"location: {view_location} | Shader program: {shaderProgram}")
+
+        OpenGL.GL.glUniformMatrix4fv( view_location , 1, OpenGL.GL.GL_FALSE, glm.value_ptr( self.getCameraMatrix() ) )
 
     def getCameraMatrix(self) -> glm.mat4x4:
-        front = glm.vec3()
-        front.x = math.cos(glm.radians( self.transform.eulerAngles.y )) * math.cos(glm.radians( self.transform.eulerAngles.x ))
-        front.y = math.sin(glm.radians( self.transform.eulerAngles.x ))
-        front.z = math.sin(glm.radians( self.transform.eulerAngles.y )) * math.cos(glm.radians( self.transform.eulerAngles.x ))
-        front = glm.normalize(front)
 
-        right = glm.normalize(glm.cross(front, glm.vec3(0.0, 1.0, 0.0)) )
-        up = glm.normalize(glm.cross(right, front) )
+        cameraPos = self.transform.position
+        
+        _r = glm.lookAt( cameraPos, glm.vec3(0,0,0), glm.vec3(0,1,0) )
 
-        return glm.lookAt(self.transform.position, self.transform.position + front, up)
+        return _r
 
 class Transform:
     def __init__(self) -> None:
@@ -324,11 +326,17 @@ class GraphicsEngine:
 if __name__ == "__main__":
 
     glm.atan(10)
+    frame = 0
 
     def Update() -> None:
+        global frame
+
+        if (frame == 1):
+            cam.setActiveCamera(DEMO_renderEngine.shaderProgram)
+        frame = frame + 1
 
         # rotate cube
-        DEMO_renderEngine.objects[0].transform.eulerAngles[1] = DEMO_renderEngine.objects[0].transform.eulerAngles[1] + ( 250 ) * DEMO_renderEngine.frameDelta
+        DEMO_renderEngine.objects[0].transform.eulerAngles[1] = 180 #DEMO_renderEngine.objects[0].transform.eulerAngles[1] + ( 0 ) * DEMO_renderEngine.frameDelta
         
         # update title
         try:
@@ -336,7 +344,7 @@ if __name__ == "__main__":
             glfw.set_window_title( DEMO_renderEngine.window, f"Demo window {round(fps,3)}fps" )
 
         except ZeroDivisionError:
-            glfw.set_window_title( DEMO_renderEngine.window, f"Demo window ∞ fps" )            
+            glfw.set_window_title( DEMO_renderEngine.window, f"Demo window ∞ fps" )
 
     DEMO_renderEngine = GraphicsEngine()
     DEMO_renderEngine.window_name = "Demo window"
@@ -344,4 +352,7 @@ if __name__ == "__main__":
     DEMO_renderEngine.objects.append( GraphicsObject() )
     DEMO_renderEngine.objects[0].transform.position[2] = 10
     DEMO_renderEngine.graphicsTick = Update
+
+    cam = Camera()
+
     DEMO_renderEngine.run()
